@@ -8,4 +8,6 @@
     public string CreatedByIp { get; set; }
     public int UserId { get; set; }
     public ApplicationUser User { get; set; }
+    public string ReplacedByToken { get; set; } // <--- Add this
+
 }

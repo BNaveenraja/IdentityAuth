@@ -1,11 +1,9 @@
-﻿
-using AuthEnt.Models;
-using AuthEnt.Models.Dto;
+﻿using AuthEnt.Models.Dto;
 using AuthEnt.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Auth.Controllers
+namespace AuthEnt.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -18,15 +16,22 @@ namespace Auth.Controllers
             _authService = authService;
         }
 
+        // ---------------------- REGISTER ----------------------
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto dto)
         {
-            var origin = Request.Scheme + "://" + Request.Host.Value;
-            var res = await _authService.RegisterAsync(dto, origin);
-            if (!res.Succeeded) return BadRequest(res.Errors.Select(e => e.Description));
+            var origin = $"{Request.Scheme}://{Request.Host.Value}";
+            var result = await _authService.RegisterAsync(dto, origin);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors.Select(e => e.Description));
+            }
+
             return StatusCode(201);
         }
 
+        // ---------------------- LOGIN ----------------------
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
         {
@@ -42,8 +47,9 @@ namespace Auth.Controllers
             }
         }
 
+        // ---------------------- REFRESH TOKEN ----------------------
         [HttpPost("refresh")]
-        public async Task<IActionResult> Refresh([FromBody] AuthEnt.Models.RefreshRequestDto dto)
+        public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto dto)
         {
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             try
@@ -57,20 +63,23 @@ namespace Auth.Controllers
             }
         }
 
+        // ---------------------- REVOKE TOKEN ----------------------
         [HttpPost("revoke")]
-        public async Task<IActionResult> Revoke([FromBody] AuthEnt.Models.RefreshRequestDto dto)
+        public async Task<IActionResult> Revoke([FromBody] RefreshRequestDto dto)
         {
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             await _authService.RevokeTokenAsync(dto.RefreshToken, ip);
             return NoContent();
         }
 
+        // ---------------------- GET CURRENT USER ----------------------
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
-            var me = await _authService.GetMeAsync(User);
-            return Ok(me);
+            var user = await _authService.GetMeAsync(User);
+            if (user == null) return NotFound();
+            return Ok(user);
         }
     }
 }
